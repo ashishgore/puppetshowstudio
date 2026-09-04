@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Puppet Show Studio</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="dot"></span>
+    <h1>Puppet Show Studio</h1>
+  </div>
+  <div class="topbar-right">
+    <span id="ffmpegWarn" class="warn" hidden>ffmpeg not found</span>
+    <button id="btnSettings" class="ghost">Settings</button>
+  </div>
+</header>
+
+<main>
+  <!-- ------------------------------------------------------ settings panel -->
+  <section id="settings" class="card" hidden>
+    <h2>Settings</h2>
+
+    <div class="field">
+      <label for="apiKey">ElevenLabs API key</label>
+      <div class="row">
+        <input type="password" id="apiKey" placeholder="sk_…" autocomplete="off">
+        <button id="btnSaveKey">Save</button>
+      </div>
+      <p class="hint" id="keyHint">Stored locally in <code>config.json</code> on this machine. Never sent anywhere except ElevenLabs.</p>
+    </div>
+
+    <div class="field">
+      <div class="row spread">
+        <label>Character voices</label>
+        <button id="btnLoadVoices" class="ghost small">Load my voices</button>
+      </div>
+      <div id="voiceRows" class="voice-rows"></div>
+      <p class="hint">Pick a stately older-male voice for Bansi and a warm female voice for Phoolwati. Voices trained on Hindi sound the most natural, but the multilingual model handles Devanagari on most voices.</p>
+    </div>
+
+    <details class="field">
+      <summary>Advanced voice tuning</summary>
+      <div class="grid3">
+        <div>
+          <label for="stability">Stability</label>
+          <input type="number" id="stability" min="0" max="1" step="0.05" value="0.45">
+        </div>
+        <div>
+          <label for="similarity">Similarity</label>
+          <input type="number" id="similarity" min="0" max="1" step="0.05" value="0.8">
+        </div>
+        <div>
+          <label for="style">Style</label>
+          <input type="number" id="style" min="0" max="1" step="0.05" value="0.35">
+        </div>
+      </div>
+      <button id="btnSaveTuning" class="ghost small">Save tuning</button>
+    </details>
+  </section>
+
+  <!-- -------------------------------------------------------- script input -->
+  <section class="card">
+    <div class="row spread">
+      <h2>Script</h2>
+      <button id="btnSample" class="ghost small">Load sample</button>
+    </div>
+
+    <textarea id="scriptBox" spellcheck="false" placeholder="Bansi: गाँववालों! आज पंचायत में एक बहुत ही सीरियस केस आया है।
+Phoolwati: केस है — नेहा और अभय के पच्चीस साल की शादी का! [sfx:tadaa]"></textarea>
+
+    <p class="hint">
+      One line per spoken line, prefixed <code>Bansi:</code> or <code>Phoolwati:</code>.
+      Optional tags at the end of a line: <code>[sfx:rimshot]</code>, <code>[pause:0.6]</code>,
+      <code>[cutaway:कुछ तो राज़ है?]</code>.
+      Devanagari gives the most natural Hindi pronunciation — romanized "Hinglish" tends to be read with an English accent.
+    </p>
+
+    <div class="row">
+      <button id="btnParse">Parse script →</button>
+    </div>
+  </section>
+
+  <!-- ------------------------------------------------------- parsed editor -->
+  <section id="linesCard" class="card" hidden>
+    <div class="row spread">
+      <h2>Lines <span id="lineCount" class="muted"></span></h2>
+      <button id="btnAddLine" class="ghost small">+ Add line</button>
+    </div>
+    <div class="table-wrap">
+      <table id="linesTable">
+        <thead>
+          <tr>
+            <th style="width:34px"></th>
+            <th style="width:130px">Speaker</th>
+            <th>Line</th>
+            <th style="width:150px">Sound effect</th>
+            <th style="width:150px">Laughter</th>
+            <th style="width:86px" title="Silence held before this line — the beat that sets up a punchline">Hold</th>
+            <th style="width:90px">Pause</th>
+            <th style="width:190px">Cutaway text</th>
+            <th style="width:34px"></th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ------------------------------------------------------------ generate -->
+  <section id="generateCard" class="card" hidden>
+    <h2>Generate</h2>
+    <div class="options">
+      <label class="check"><input type="checkbox" id="optSubtitles" checked> Burn in subtitles</label>
+      <label class="check"><input type="checkbox" id="opt1080"> Export at 1080p <span class="muted">(upscaled)</span></label>
+      <label class="check"><input type="checkbox" id="optOffline"> Preview mode <span class="muted">(no API calls / no credits)</span></label>
+    </div>
+
+    <div class="intro-box">
+      <label class="check"><input type="checkbox" id="optIntro"> Open with a song <span class="muted">— puppets dance to it, then the conversation starts</span></label>
+      <div class="intro-fields">
+        <input type="text" id="introPath" placeholder="full path to an audio file, e.g. /Users/you/Downloads/song.mp3">
+        <input type="number" id="introSecs" min="1" max="60" step="0.5" title="How many seconds from the start of the song">
+        <span class="muted">sec from the start</span>
+      </div>
+    </div>
+    <div class="intro-box">
+      <label class="check"><input type="checkbox" id="optFilm"> 1970s village-film look <span class="muted">— faded print, grain, gate weave, horn-speaker sound</span></label>
+      <div class="intro-fields">
+        <label for="filmStrength" class="muted">Strength</label>
+        <input type="range" id="filmStrength" min="0" max="1" step="0.05">
+        <span id="filmStrengthVal" class="muted"></span>
+      </div>
+    </div>
+
+    <div class="row">
+      <button id="btnGenerate" class="primary">Generate video</button>
+      <span id="genNote" class="hint inline"></span>
+    </div>
+
+    <div id="progressWrap" hidden>
+      <div class="bar"><div id="bar" class="bar-fill"></div></div>
+      <p id="progressMsg" class="progress-msg"></p>
+      <pre id="progressLog" class="log"></pre>
+    </div>
+
+    <div id="resultWrap" hidden>
+      <video id="resultVideo" controls playsinline></video>
+      <div class="row">
+        <a id="btnDownload" class="primary button" download>Download MP4</a>
+        <button id="btnAgain" class="ghost">Generate another</button>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script src="/static/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,15 @@
+# Local settings -- contains your ElevenLabs API key in plain text
+config.json
+
+# Rendered output: hundreds of MB, and each job's audio holds slices of
+# whatever music file you pointed the intro at
+jobs/
+
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+
+# macOS
+.DS_Store
+!jobs/.gitkeep
