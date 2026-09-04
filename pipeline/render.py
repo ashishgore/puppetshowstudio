@@ -192,9 +192,12 @@ def render_video(job_dir, timeline, fps=24, upscale_1080=False, progress=None,
     A = _assets()
 
     film_state = None
-    if film and film.get("enabled"):
+    film_strength = float((film or {}).get("strength", 1.0))
+    # at zero strength every stage is a no-op, so skip the pass entirely
+    # rather than paying ~50ms a frame to round the image through float
+    if film and film.get("enabled") and film_strength > 0:
         report("Preparing the film look…", 43)
-        film_state = film_mod.prepare(W, H, strength=float(film.get("strength", 1.0)))
+        film_state = film_mod.prepare(W, H, strength=film_strength)
 
     segments = timeline["segments"]
     total_ms = timeline["total_ms"]
